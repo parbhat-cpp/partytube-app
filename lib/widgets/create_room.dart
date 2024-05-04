@@ -1,6 +1,11 @@
 import 'package:flutter/material.dart';
 import 'dart:math';
 
+import 'package:flutter/services.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:partytube_app/state_management/socket_manager.dart';
+import 'package:share_plus/share_plus.dart';
+
 class CreateRoom extends StatefulWidget {
   const CreateRoom({super.key});
 
@@ -22,6 +27,79 @@ class _CreateRoomState extends State<CreateRoom> {
             length, (_) => _chars.codeUnitAt(_rnd.nextInt(_chars.length))),
       );
 
+  Future<void> handleJoinRoom(BuildContext context) async {
+    if (adminName.text.isEmpty ||
+        roomName.text.isEmpty ||
+        roomId.text.isEmpty) {
+      ScaffoldMessengerState scaffold = ScaffoldMessenger.of(context);
+      scaffold.showSnackBar(const SnackBar(
+        content: Text('Please enter all fields'),
+      ));
+    } else {
+      showDialog(
+          context: context,
+          builder: (BuildContext context) {
+            return AlertDialog(
+              title: Text('Create ${roomName.text}'),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: <Widget>[
+                  TextField(
+                    controller: roomId,
+                    onChanged: (value) {
+                      setState(() {
+                        roomId.text = value;
+                      });
+                    },
+                    decoration: InputDecoration(
+                      label: const Text('Room ID'),
+                      suffixIcon: IconButton(
+                        icon: const Icon(Icons.copy),
+                        onPressed: () async {
+                          await Clipboard.setData(
+                              ClipboardData(text: roomId.text));
+                        },
+                      ),
+                    ),
+                  ),
+                  const SizedBox(
+                    height: 10,
+                  ),
+                  ElevatedButton.icon(
+                    onPressed: () {
+                      Share.share(roomId.text,
+                          subject:
+                              'Hey! Lets connect on Party Tube and watch something interesting together.');
+                    },
+                    label: const Text('Share room id'),
+                    icon: const Icon(Icons.share),
+                  ),
+                  const SizedBox(
+                    height: 10,
+                  ),
+                  ElevatedButton.icon(
+                    onPressed: handleCreateAndJoinRoom,
+                    label: const Text('Create Room & Join'),
+                    icon: const Icon(Icons.private_connectivity),
+                  ),
+                ],
+              ),
+            );
+          });
+    }
+  }
+
+  void handleCreateAndJoinRoom() {
+    String admin_name = adminName.text;
+    String room_name = roomName.text;
+    String room_id = roomId.text;
+
+    context
+        .read<SocketManager>()
+        .socketEmit("create-room", {admin_name, room_name, room_id});
+  }
+
   @override
   void initState() {
     super.initState();
@@ -39,23 +117,25 @@ class _CreateRoomState extends State<CreateRoom> {
         children: [
           TextField(
             controller: adminName,
+            onChanged: (enteredAdminName) {
+              adminName.text = enteredAdminName;
+            },
             decoration: const InputDecoration(labelText: "Enter Admin Name"),
           ),
           TextField(
             controller: roomName,
+            onChanged: (enteredRoomName) {
+              setState(() {
+                roomName.text = enteredRoomName;
+              });
+            },
             decoration: const InputDecoration(labelText: "Enter Room Name"),
           ),
-          Row(
-            children: [
-              SizedBox(
-                width: MediaQuery.of(context).size.width * 90 / 100 - 45,
-                child: TextField(
-                  controller: roomId,
-                  decoration: const InputDecoration(
-                      labelText: "Enter or generate Room ID"),
-                ),
-              ),
-              IconButton(
+          TextField(
+            controller: roomId,
+            decoration: InputDecoration(
+              labelText: "Enter or generate Room ID",
+              suffixIcon: IconButton(
                 onPressed: () {
                   String id = getRandomString(6);
                   setState(() {
@@ -65,7 +145,7 @@ class _CreateRoomState extends State<CreateRoom> {
                 icon: const Icon(Icons.generating_tokens_outlined),
                 style: const ButtonStyle(alignment: Alignment.centerRight),
               ),
-            ],
+            ),
           ),
           const SizedBox(
             height: 10,
@@ -73,9 +153,9 @@ class _CreateRoomState extends State<CreateRoom> {
           SizedBox(
             width: MediaQuery.of(context).size.width - 30,
             child: ElevatedButton.icon(
-              onPressed: () {},
+              onPressed: () => handleJoinRoom(context),
               label: Text(
-                'Join $roomName',
+                'Create ${roomName.text}',
                 style: const TextStyle(color: Colors.white),
               ),
               icon: const Icon(
@@ -85,7 +165,7 @@ class _CreateRoomState extends State<CreateRoom> {
               style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.grey.shade900),
             ),
-          )
+          ),
         ],
       ),
     );
