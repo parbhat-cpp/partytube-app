@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:loading_animation_widget/loading_animation_widget.dart';
 import 'package:partytube_app/state_management/socket_manager.dart';
 import 'package:partytube_app/widgets/create_room.dart';
+import 'package:partytube_app/widgets/join_room.dart';
 
 class Homepage extends StatefulWidget {
   const Homepage({super.key});
@@ -17,6 +18,7 @@ class _HomepageState extends State<Homepage> {
   @override
   void initState() {
     super.initState();
+
     initSocket();
   }
 
@@ -64,7 +66,7 @@ class _HomepageState extends State<Homepage> {
                 ),
                 ExpansionTile(
                   title: Text("Join Room"),
-                  children: [],
+                  children: [JoinRoom()],
                 ),
               ],
             );
