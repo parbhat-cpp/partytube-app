@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
-import 'dart:math';
 
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:partytube_app/functions/functions.dart';
+import 'package:partytube_app/pages/room.dart';
+import 'package:partytube_app/state_management/room_state.dart';
 import 'package:partytube_app/state_management/socket_manager.dart';
 import 'package:share_plus/share_plus.dart';
 
@@ -18,14 +20,7 @@ class _CreateRoomState extends State<CreateRoom> {
   TextEditingController roomName = TextEditingController();
   TextEditingController roomId = TextEditingController();
 
-  static const _chars =
-      'AaBbCcDdEeFfGgHhIiJjKkLlMmNnOoPpQqRrSsTtUuVvWwXxYyZz1234567890';
-  final Random _rnd = Random();
-
-  String getRandomString(int length) => String.fromCharCodes(
-        Iterable.generate(
-            length, (_) => _chars.codeUnitAt(_rnd.nextInt(_chars.length))),
-      );
+  String userId = '';
 
   Future<void> handleJoinRoom(BuildContext context) async {
     if (adminName.text.isEmpty ||
@@ -94,10 +89,15 @@ class _CreateRoomState extends State<CreateRoom> {
     String admin_name = adminName.text;
     String room_name = roomName.text;
     String room_id = roomId.text;
+    String user_id = Functions().getRandomString(8);
+
+    setState(() {
+      userId = user_id;
+    });
 
     context
         .read<SocketManager>()
-        .socketEmit("create-room", {admin_name, room_name, room_id});
+        .socketEmit("create-room", {admin_name, user_id, room_name, room_id});
   }
 
   @override
@@ -107,6 +107,25 @@ class _CreateRoomState extends State<CreateRoom> {
     adminName.text = "";
     roomName.text = "";
     roomId.text = "";
+
+    context.read<SocketManager>().socketListen("room-exists", (p0) {
+      ScaffoldMessengerState scaffold = ScaffoldMessenger.of(context);
+      scaffold.showSnackBar(const SnackBar(
+        content: Text('Room exists with this ID'),
+      ));
+    });
+
+    context.read<SocketManager>().socketListen("room-n-exists", (p0) {
+      context.read<RoomState>().setRoomId(roomId.text);
+      context.read<RoomState>().setUserId(userId);
+
+      adminName.text = '';
+      roomName.text = '';
+      roomId.text = '';
+
+      Navigator.push(
+          context, MaterialPageRoute(builder: (context) => const Room()));
+    });
   }
 
   @override
@@ -137,7 +156,7 @@ class _CreateRoomState extends State<CreateRoom> {
               labelText: "Enter or generate Room ID",
               suffixIcon: IconButton(
                 onPressed: () {
-                  String id = getRandomString(6);
+                  String id = Functions().getRandomString(6);
                   setState(() {
                     roomId.text = id;
                   });
