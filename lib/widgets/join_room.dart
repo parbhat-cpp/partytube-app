@@ -63,6 +63,15 @@ class _JoinRoomState extends State<JoinRoom> {
   }
 
   @override
+  void dispose() {
+    context.read<SocketManager>().removeListener("room-found");
+    context.read<SocketManager>().removeListener("room-not-found");
+    context.read<SocketManager>().removeListener("join-room");
+
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 10),

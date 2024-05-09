@@ -129,6 +129,15 @@ class _CreateRoomState extends State<CreateRoom> {
   }
 
   @override
+  void dispose() {
+    context.read<SocketManager>().removeListener("room-n-exists");
+    context.read<SocketManager>().removeListener("room-exists");
+    context.read<SocketManager>().removeListener("create-room");
+
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 10),

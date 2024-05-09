@@ -49,13 +49,49 @@ class _RoomState extends State<Room> {
       });
     });
 
-    context.read<SocketManager>().socketListen("room-not-found", (userJson) {
-      Navigator.of(context).pop();
+    context.read<SocketManager>().socketListen("room-not-found", (p0) {
+      Navigator.of(context).pop(context);
     });
 
     context.read<SocketManager>().socketListen("user-not-found", (p0) {
-      Navigator.of(context).pop();
+      Navigator.of(context).pop(context);
     });
+
+    context.read<SocketManager>().socketListen("admin-left-room", (p0) {
+      ScaffoldMessengerState scaffold = ScaffoldMessenger.of(context);
+      scaffold.showSnackBar(const SnackBar(
+        content: Text('Admin left the room!'),
+      ));
+
+      Navigator.of(context).pop(context);
+    });
+  }
+
+  @override
+  void dispose() {
+    super.dispose();
+
+    context.read<SocketManager>().removeListener("leave-room");
+    context.read<SocketManager>().removeListener("admin-left-room");
+    context.read<SocketManager>().removeListener("user-not-found");
+    context.read<SocketManager>().removeListener("room-not-found");
+    context.read<SocketManager>().removeListener("room-info");
+    context.read<SocketManager>().removeListener("user-info");
+    context.read<SocketManager>().removeListener("get-user");
+    context.read<SocketManager>().removeListener("get-room");
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+  }
+
+  void handleRoomLeave() {
+    context
+        .read<SocketManager>()
+        .socketEmit("leave-room", {user.id, user.name, user.room});
+
+    Navigator.of(context).pop(context);
   }
 
   @override
@@ -79,6 +115,12 @@ class _RoomState extends State<Room> {
             appBar: AppBar(
               title: Text('${room.roomName} (${room.roomId})'),
               backgroundColor: Colors.black,
+              automaticallyImplyLeading: false,
+              leading: Builder(builder: (BuildContext context) {
+                return IconButton(
+                    onPressed: handleRoomLeave,
+                    icon: const Icon(Icons.arrow_back));
+              }),
             ),
             body: Column(
               children: [
