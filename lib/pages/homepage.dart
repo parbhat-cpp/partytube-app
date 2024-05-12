@@ -40,7 +40,7 @@ class _HomepageState extends State<Homepage> {
     return SafeArea(
       child: Scaffold(
         appBar: AppBar(
-          backgroundColor: Colors.black,
+          backgroundColor: Colors.blue.shade300,
         ),
         body: Builder(builder: (context) {
           if (loader) {
@@ -49,7 +49,7 @@ class _HomepageState extends State<Homepage> {
               children: [
                 Center(
                   child: LoadingAnimationWidget.prograssiveDots(
-                    color: Colors.black26,
+                    color: Colors.blue.shade300,
                     size: 75,
                   ),
                 ),
