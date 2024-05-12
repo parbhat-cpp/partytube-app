@@ -18,6 +18,8 @@ class _JoinRoomState extends State<JoinRoom> {
 
   String userId = '';
 
+  late SocketManager socketManager;
+
   void handleJoinRoom() {
     if (username.text.isEmpty || roomId.text.isEmpty) {
       ScaffoldMessengerState scaffold = ScaffoldMessenger.of(context);
@@ -44,13 +46,18 @@ class _JoinRoomState extends State<JoinRoom> {
     username.text = '';
     roomId.text = '';
 
-    context.read<SocketManager>().socketListen("room-not-found", (p0) {
+    socketManager = context.read<SocketManager>();
+
+    socketManager.socketListen("room-not-found", (p0) {
+      username.text = '';
+      roomId.text = '';
+      
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Room not found')),
       );
     });
 
-    context.read<SocketManager>().socketListen("room-found", (p0) {
+    socketManager.socketListen("room-found", (p0) {
       context.read<RoomState>().setRoomId(roomId.text);
       context.read<RoomState>().setUserId(userId);
 
@@ -64,9 +71,9 @@ class _JoinRoomState extends State<JoinRoom> {
 
   @override
   void dispose() {
-    context.read<SocketManager>().removeListener("room-found");
-    context.read<SocketManager>().removeListener("room-not-found");
-    context.read<SocketManager>().removeListener("join-room");
+    socketManager.removeListener("room-found");
+    socketManager.removeListener("room-not-found");
+    socketManager.removeListener("join-room");
 
     super.dispose();
   }
@@ -94,14 +101,12 @@ class _JoinRoomState extends State<JoinRoom> {
               onPressed: handleJoinRoom,
               label: const Text(
                 'Join Room',
-                style: TextStyle(color: Colors.white),
               ),
               icon: const Icon(
                 Icons.private_connectivity,
-                color: Colors.white,
               ),
               style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.grey.shade900),
+                  backgroundColor: Colors.blue.shade50),
             ),
           ),
         ],
