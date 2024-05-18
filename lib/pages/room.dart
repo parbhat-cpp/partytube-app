@@ -4,6 +4,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:loading_animation_widget/loading_animation_widget.dart';
 import 'package:partytube_app/model/room.dart';
 import 'package:partytube_app/model/user.dart';
+import 'package:partytube_app/services/youtube_api.dart';
 import 'package:partytube_app/state_management/room_state.dart';
 import 'package:partytube_app/state_management/socket_manager.dart';
 
@@ -27,11 +28,26 @@ class _RoomState extends State<Room> {
   late SocketManager socketManager;
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
 
+  TextEditingController searchController = TextEditingController();
+
+  late BuildContext searchDialog;
+
+  YouTubeApi youTubeApi = YouTubeApi();
+  List<Map<String, dynamic>> searchData = [];
+
+  late bool isLoading;
+
+  late StateSetter setSearchDialogState;
+
   @override
   void initState() {
     super.initState();
 
     socketManager = context.read<SocketManager>();
+
+    searchController.text = '';
+
+    isLoading = false;
 
     setState(() {
       roomId = context.read<RoomState>().getRoomId();
@@ -144,6 +160,88 @@ class _RoomState extends State<Room> {
     socketManager.socketEmit("remove-user", {userId, roomId});
   }
 
+  void searchOnYouTube(bool nextLoad) async {
+    setSearchDialogState(() {
+      isLoading = true;
+    });
+
+    await youTubeApi.search(searchController.text, nextLoad);
+
+    setSearchDialogState(() {
+      searchData = youTubeApi.searchResult;
+
+      isLoading = false;
+    });
+  }
+
+  void _showSearchDialog(BuildContext context) {
+    showDialog(
+        context: context,
+        builder: (BuildContext context) {
+          searchDialog = context;
+          return StatefulBuilder(builder: (context, setState) {
+            setSearchDialogState = setState;
+
+            return AlertDialog(
+              title: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Expanded(
+                    child: TextField(
+                      controller: searchController,
+                      onSubmitted: (searchQuery) => searchOnYouTube(false),
+                      decoration: const InputDecoration(
+                        hintText: 'Search on YouTube',
+                        prefixIcon: Icon(Icons.search),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.all(
+                            Radius.circular(50),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  IconButton(
+                    onPressed: () {
+                      Navigator.pop(searchDialog);
+                    },
+                    icon: const Icon(Icons.close),
+                  ),
+                ],
+              ),
+              content: isLoading
+                  ? Center(
+                      child: LoadingAnimationWidget.waveDots(
+                        color: Colors.blue.shade300,
+                        size: 75,
+                      ),
+                    )
+                  : SizedBox(
+                      width: MediaQuery.of(context).size.width - 90,
+                      height: MediaQuery.of(context).size.height - 90,
+                      child: ListView.builder(
+                        itemCount: searchData.length,
+                        itemBuilder: (BuildContext context, int index) {
+                          String videoId = searchData[index]['id']['videoId'];
+
+                          return ListTile(
+                            title: Text(videoId),
+                          );
+                        },
+                      ),
+                    ),
+              actions: [
+                ElevatedButton(
+                    onPressed: () {
+                      searchOnYouTube(true);
+                    },
+                    child: const Text('Load more')),
+              ],
+            );
+          });
+        });
+  }
+
   @override
   Widget build(BuildContext context) {
     return SafeArea(
@@ -180,7 +278,8 @@ class _RoomState extends State<Room> {
                       ),
                       iconColor: Colors.red,
                       title: Text(
-                          '${room.users[index].username} ${isUserAdmin(room.users[index].userId) ? '(Admin)' : ''}'),
+                        '${room.users[index].username} ${isUserAdmin(room.users[index].userId) ? '(Admin)' : ''}',
+                      ),
                     ),
                   );
                 },
@@ -192,10 +291,15 @@ class _RoomState extends State<Room> {
               automaticallyImplyLeading: false,
               leading: Builder(builder: (BuildContext context) {
                 return IconButton(
-                    onPressed: handleRoomLeave,
-                    icon: const Icon(Icons.arrow_back));
+                  onPressed: handleRoomLeave,
+                  icon: const Icon(Icons.arrow_back),
+                );
               }),
               actions: [
+                IconButton(
+                  onPressed: () => _showSearchDialog(context),
+                  icon: const Icon(Icons.search),
+                ),
                 IconButton(
                   onPressed: () {
                     _scaffoldKey.currentState!.openEndDrawer();
