@@ -15,6 +15,9 @@ class _HomepageState extends State<Homepage> {
   late bool loader;
   late SocketManager socketManager;
 
+  ExpansionTileController expandCreateRoom = ExpansionTileController();
+  ExpansionTileController expandJoinRoom = ExpansionTileController();
+
   @override
   void initState() {
     super.initState();
@@ -57,16 +60,18 @@ class _HomepageState extends State<Homepage> {
               ],
             );
           } else {
-            return const Column(
+            return Column(
               children: [
                 ExpansionTile(
+                  controller: expandCreateRoom,
                   initiallyExpanded: true,
-                  title: Text("Create Room"),
-                  children: [CreateRoom()],
+                  title: const Text("Create Room"),
+                  children: const [CreateRoom()],
                 ),
                 ExpansionTile(
-                  title: Text("Join Room"),
-                  children: [JoinRoom()],
+                  controller: expandJoinRoom,
+                  title: const Text("Join Room"),
+                  children: const [JoinRoom()],
                 ),
               ],
             );
