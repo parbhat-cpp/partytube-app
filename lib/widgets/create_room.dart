@@ -101,8 +101,7 @@ class _CreateRoomState extends State<CreateRoom> {
 
     Navigator.pop(joinDialogBox);
 
-    context
-        .read<SocketManager>()
+    socketManager
         .socketEmit("create-room", {admin_name, user_id, room_name, room_id});
   }
 
