@@ -12,17 +12,24 @@ class Homepage extends StatefulWidget {
 }
 
 class _HomepageState extends State<Homepage> {
-  late bool loader;
+  late bool loader = false;
   late SocketManager socketManager;
 
   ExpansionTileController expandCreateRoom = ExpansionTileController();
   ExpansionTileController expandJoinRoom = ExpansionTileController();
 
+  late ThemeData themeData;
+
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      themeData = Theme.of(context);
 
-    initSocket();
+      initSocket();
+
+      loader = false;
+    });
   }
 
   initSocket() {
@@ -42,9 +49,7 @@ class _HomepageState extends State<Homepage> {
   Widget build(BuildContext context) {
     return SafeArea(
       child: Scaffold(
-        appBar: AppBar(
-          backgroundColor: Colors.blue.shade300,
-        ),
+        appBar: AppBar(),
         body: Builder(builder: (context) {
           if (loader) {
             return Column(
@@ -52,7 +57,7 @@ class _HomepageState extends State<Homepage> {
               children: [
                 Center(
                   child: LoadingAnimationWidget.prograssiveDots(
-                    color: Colors.blue.shade300,
+                    color: themeData.primaryColor,
                     size: 75,
                   ),
                 ),
