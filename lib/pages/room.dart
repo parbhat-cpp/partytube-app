@@ -1,10 +1,16 @@
+import 'package:cached_network_image/cached_network_image.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/widgets.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:loading_animation_widget/loading_animation_widget.dart';
 import 'package:partytube_app/model/room.dart';
 import 'package:partytube_app/model/user.dart';
+import 'package:partytube_app/services/youtube_api.dart';
 import 'package:partytube_app/state_management/room_state.dart';
 import 'package:partytube_app/state_management/socket_manager.dart';
+import 'package:partytube_app/widgets/chat.dart';
+import 'package:youtube_player_flutter/youtube_player_flutter.dart';
 
 class Room extends StatefulWidget {
   const Room({super.key});
@@ -23,39 +29,323 @@ class _RoomState extends State<Room> {
   bool userFound = false;
   bool roomFound = false;
 
+  late SocketManager socketManager;
+  late RoomState roomState;
+  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
+
+  TextEditingController searchController = TextEditingController();
+  TextEditingController chatController = TextEditingController();
+
+  late BuildContext searchDialog;
+
+  YouTubeApi youTubeApi = YouTubeApi();
+  List<Map<String, dynamic>> searchData = [];
+
+  late bool isLoading;
+
+  late StateSetter setSearchDialogState;
+  late StateSetter setChatState;
+
+  late YoutubePlayerController youtubePlayerController;
+
+  List<Map<String, String>> chats = [];
+
   @override
   void initState() {
     super.initState();
 
+    socketManager = context.read<SocketManager>();
+    roomState = context.read<RoomState>();
+
+    youtubePlayerController = YoutubePlayerController(
+      initialVideoId: '1BfCnjr_Vjg',
+      flags: const YoutubePlayerFlags(
+        autoPlay: false,
+        mute: false,
+      ),
+    );
+
+    searchController.text = '';
+    chatController.text = '';
+
+    isLoading = false;
+
     setState(() {
-      roomId = context.read<RoomState>().getRoomId();
-      userId = context.read<RoomState>().getUserId();
+      roomId = roomState.getRoomId();
+      userId = roomState.getUserId();
     });
 
-    context.read<SocketManager>().socketEmit("get-room", roomId);
-    context.read<SocketManager>().socketEmit("get-user", userId);
+    socketManager.socketEmit("get-room", roomId);
+    socketManager.socketEmit("get-user", userId);
 
-    context.read<SocketManager>().socketListen("user-info", (userJson) {
+    socketManager.socketListen("user-info", (userJson) {
       setState(() {
         user = UserModel.fromJson(userJson);
         userFound = true;
       });
     });
 
-    context.read<SocketManager>().socketListen("room-info", (roomJson) {
+    socketManager.socketListen("room-info", (roomJson) {
       setState(() {
         room = RoomModel.fromJson(roomJson);
         roomFound = true;
       });
     });
 
-    context.read<SocketManager>().socketListen("room-not-found", (userJson) {
-      Navigator.of(context).pop();
+    socketManager.socketListen("room-not-found", (p0) {
+      Navigator.pop(context);
     });
 
-    context.read<SocketManager>().socketListen("user-not-found", (p0) {
-      Navigator.of(context).pop();
+    socketManager.socketListen("user-not-found", (p0) {
+      Navigator.pop(context);
     });
+
+    socketManager.socketListen("admin-left-room", (p0) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+        content: Text('Admin left the room!'),
+      ));
+
+      Navigator.pop(context);
+    });
+
+    socketManager.socketListen("user-left", (userLeftName) {
+      ScaffoldMessengerState scaffold = ScaffoldMessenger.of(context);
+
+      socketManager.socketEmit("get-room", roomId);
+
+      scaffold.showSnackBar(SnackBar(
+        content: Text('$userLeftName left the room!'),
+      ));
+    });
+
+    socketManager.socketListen("new-user-joined", (username) {
+      ScaffoldMessengerState scaffold = ScaffoldMessenger.of(context);
+
+      socketManager.socketEmit("get-room", roomId);
+
+      scaffold.showSnackBar(SnackBar(
+        content: Text('$username joined the room!'),
+      ));
+    });
+
+    socketManager.socketListen("remove-user-response", (removeUserId) {
+      if (userId == removeUserId) {
+        socketManager.socketEmit("user-removed", user.name);
+
+        Navigator.pop(context);
+      }
+    });
+
+    socketManager.socketListen("user-kicked", (username) {
+      ScaffoldMessengerState scaffold = ScaffoldMessenger.of(context);
+
+      socketManager.socketEmit("get-room", roomId);
+
+      scaffold.showSnackBar(SnackBar(
+        content: Text('$username was removed by the admin'),
+      ));
+    });
+
+    socketManager.socketListen("set-videoid", (socketData) {
+      youtubePlayerController.load(socketData['videoId']);
+
+      ScaffoldMessengerState scaffold = ScaffoldMessenger.of(context);
+
+      scaffold.showSnackBar(SnackBar(
+        content: Text('${socketData['username']} changed video'),
+      ));
+    });
+
+    socketManager.socketListen("receive-message", (dynamic socketData) {
+      print(socketData);
+      setChatState(() {
+        chats.add({
+          "username": socketData['username']['username'],
+          "userId": socketData['username']['userId'],
+          "message": socketData['username']['message']
+        });
+      });
+    });
+  }
+
+  @override
+  void dispose() {
+    socketManager.removeListener("leave-room");
+    socketManager.removeListener("user-left");
+    socketManager.removeListener("admin-left-room");
+    socketManager.removeListener("user-not-found");
+    socketManager.removeListener("room-not-found");
+    socketManager.removeListener("room-info");
+    socketManager.removeListener("user-info");
+    socketManager.removeListener("get-user");
+    socketManager.removeListener("get-room");
+    socketManager.removeListener("new-user-joined");
+    socketManager.removeListener("remove-user");
+    socketManager.removeListener("remove-user-response");
+    socketManager.removeListener("user-removed");
+    socketManager.removeListener("user-kicked");
+    socketManager.removeListener("set-video");
+    socketManager.removeListener("set-videoid");
+    socketManager.removeListener("send-message");
+    socketManager.removeListener("receive-message");
+
+    super.dispose();
+  }
+
+  void handleRoomLeave() {
+    socketManager.socketEmit("leave-room", {user.id, user.name, user.room});
+
+    Navigator.pop(context);
+  }
+
+  bool isUserAdmin(String userId) {
+    return room.roomAdminId == userId;
+  }
+
+  void removeUser(String userId) {
+    socketManager.socketEmit("remove-user", {userId, roomId});
+  }
+
+  void searchOnYouTube(bool nextLoad) async {
+    setSearchDialogState(() {
+      isLoading = true;
+    });
+
+    await youTubeApi.search(searchController.text, nextLoad);
+
+    setSearchDialogState(() {
+      searchData = youTubeApi.searchResult;
+
+      isLoading = false;
+    });
+  }
+
+  void handleVideoClick(String videoId) {
+    youtubePlayerController.load(videoId);
+
+    socketManager.socketEmit("set-video", {user.name, videoId});
+
+    Navigator.pop(searchDialog);
+  }
+
+  void _showSearchDialog(BuildContext context) {
+    showDialog(
+        context: context,
+        builder: (BuildContext context) {
+          searchDialog = context;
+          return StatefulBuilder(builder: (context, setState) {
+            setSearchDialogState = setState;
+
+            return AlertDialog(
+              title: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Expanded(
+                    child: TextField(
+                      controller: searchController,
+                      onSubmitted: (searchQuery) => searchOnYouTube(false),
+                      decoration: InputDecoration(
+                        hintText: 'Search on YouTube',
+                        isDense: true,
+                        contentPadding: const EdgeInsets.symmetric(
+                          vertical: 5,
+                          horizontal: 5,
+                        ),
+                        prefixIcon: IconButton(
+                          onPressed: () {},
+                          icon: const Icon(Icons.filter_list_outlined),
+                        ),
+                        border: const OutlineInputBorder(
+                          gapPadding: 0,
+                          borderRadius: BorderRadius.all(
+                            Radius.circular(50),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  IconButton(
+                    onPressed: () {
+                      Navigator.pop(searchDialog);
+                    },
+                    icon: const Icon(Icons.close),
+                  ),
+                ],
+              ),
+              content: SizedBox(
+                width: MediaQuery.of(context).size.width,
+                height: MediaQuery.of(context).size.height,
+                child: isLoading
+                    ? Center(
+                        child: LoadingAnimationWidget.waveDots(
+                          color: Theme.of(context).primaryColor,
+                          size: 75,
+                        ),
+                      )
+                    : ListView.builder(
+                        itemCount: searchData.length,
+                        itemBuilder: (BuildContext context, int index) {
+                          double thumbnailWidth =
+                              searchData[index]['thumbnailHeight'];
+                          double thumbnailHeight =
+                              searchData[index]['thumbnailHeight'];
+                          String videoTitle = searchData[index]['title'];
+                          String imageSrc = searchData[index]['thumbnailUrl'];
+                          String videoId = searchData[index]['videoId'];
+
+                          return SizedBox(
+                            height: 60,
+                            child: ListTile(
+                              leading: CachedNetworkImage(
+                                imageUrl: imageSrc,
+                                width: thumbnailWidth,
+                                height: thumbnailHeight,
+                                fit: BoxFit.cover,
+                                placeholder: (context, url) => const Center(
+                                  child: Text('Loading...'),
+                                ),
+                                errorWidget: (context, url, error) =>
+                                    const Icon(Icons.error),
+                              ),
+                              title: Text(
+                                videoTitle,
+                                style: const TextStyle(fontSize: 13),
+                                overflow: TextOverflow.clip,
+                              ),
+                              onTap: () => handleVideoClick(videoId),
+                            ),
+                          );
+                        },
+                      ),
+              ),
+              actions: [
+                ElevatedButton(
+                  onPressed: () {
+                    searchOnYouTube(true);
+                  },
+                  child: const Text('Load more'),
+                ),
+              ],
+            );
+          });
+        });
+  }
+
+  void sendMessage() {
+    String message = chatController.text;
+
+    if (message.isEmpty) {
+      return;
+    }
+
+    socketManager.socketEmit("send-message",
+        {"username": user.name, "userId": user.id, "message": message});
+
+    setChatState(() {
+      chats.add({"username": user.name, "userId": user.id, "message": message});
+    });
+
+    chatController.text = '';
   }
 
   @override
@@ -68,7 +358,7 @@ class _RoomState extends State<Room> {
             children: [
               Center(
                 child: LoadingAnimationWidget.prograssiveDots(
-                  color: Colors.black26,
+                  color: Theme.of(context).primaryColor,
                   size: 75,
                 ),
               ),
@@ -76,13 +366,119 @@ class _RoomState extends State<Room> {
           );
         } else {
           return Scaffold(
+            key: _scaffoldKey,
+            endDrawer: Drawer(
+              child: ListView.builder(
+                itemCount: room.users.length,
+                itemBuilder: (context, index) {
+                  return Card(
+                    child: ListTile(
+                      leading: Visibility(
+                        visible: isUserAdmin(userId) &&
+                            !isUserAdmin(room.users[index].userId),
+                        child: IconButton(
+                          tooltip: 'Remove user',
+                          onPressed: () => removeUser(room.users[index].userId),
+                          icon: const Icon(Icons.close),
+                        ),
+                      ),
+                      iconColor: Colors.red,
+                      title: Text(
+                        '${room.users[index].username} ${isUserAdmin(room.users[index].userId) ? '(Admin)' : ''}',
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
             appBar: AppBar(
               title: Text('${room.roomName} (${room.roomId})'),
-              backgroundColor: Colors.black,
+              automaticallyImplyLeading: false,
+              leading: Builder(builder: (BuildContext context) {
+                return IconButton(
+                  onPressed: handleRoomLeave,
+                  icon: const Icon(Icons.arrow_back),
+                );
+              }),
+              actions: [
+                IconButton(
+                  onPressed: () => _showSearchDialog(context),
+                  icon: const Icon(Icons.search),
+                ),
+                IconButton(
+                  onPressed: () {
+                    _scaffoldKey.currentState!.openEndDrawer();
+                  },
+                  icon: const Icon(Icons.menu),
+                ),
+              ],
             ),
             body: Column(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text('${room.roomAdminId} ${room.roomAdminUsername}'),
+                YoutubePlayerBuilder(
+                  player: YoutubePlayer(
+                    controller: youtubePlayerController,
+                  ),
+                  builder: (context, player) {
+                    return Column(
+                      children: [player],
+                    );
+                  },
+                ),
+                Expanded(
+                  child: StatefulBuilder(builder: (context, setState) {
+                    setChatState = setState;
+
+                    return ListView.builder(
+                      itemCount: chats.length,
+                      itemBuilder: (context, index) {
+                        String message = chats[index]['message'] as String;
+                        String userSent = chats[index]['userId'] as String;
+                        String username = (user.id == userSent)
+                            ? 'Me'
+                            : chats[index]['username'] as String;
+
+                        return Row(
+                          children: [
+                            if (user.id == userSent)
+                              const Spacer(
+                                flex: 1,
+                              ),
+                            ConstrainedBox(
+                              constraints: BoxConstraints(
+                                maxWidth:
+                                    MediaQuery.of(context).size.width * 0.75,
+                              ),
+                              child: Chat(
+                                text: message,
+                                username: username,
+                                isMe: username == 'Me',
+                              ),
+                            ),
+                          ],
+                        );
+                      },
+                    );
+                  }),
+                ),
+                Container(
+                  padding: const EdgeInsets.all(2),
+                  child: TextField(
+                    controller: chatController,
+                    decoration: InputDecoration(
+                      hintText: 'Type a message',
+                      isDense: true,
+                      border: const OutlineInputBorder(
+                          borderSide: BorderSide(width: 1)),
+                      suffixIcon: IconButton(
+                        onPressed: () => sendMessage(),
+                        icon: const Icon(Icons.send),
+                      ),
+                    ),
+                    onSubmitted: (msg) => sendMessage(),
+                  ),
+                ),
               ],
             ),
           );

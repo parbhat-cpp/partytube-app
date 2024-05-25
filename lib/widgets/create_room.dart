@@ -22,6 +22,9 @@ class _CreateRoomState extends State<CreateRoom> {
 
   String userId = '';
 
+  late SocketManager socketManager;
+  late BuildContext joinDialogBox;
+
   Future<void> handleJoinRoom(BuildContext context) async {
     if (adminName.text.isEmpty ||
         roomName.text.isEmpty ||
@@ -34,6 +37,7 @@ class _CreateRoomState extends State<CreateRoom> {
       showDialog(
           context: context,
           builder: (BuildContext context) {
+            joinDialogBox = context;
             return AlertDialog(
               title: Text('Create ${roomName.text}'),
               content: Column(
@@ -95,8 +99,9 @@ class _CreateRoomState extends State<CreateRoom> {
       userId = user_id;
     });
 
-    context
-        .read<SocketManager>()
+    Navigator.pop(joinDialogBox);
+
+    socketManager
         .socketEmit("create-room", {admin_name, user_id, room_name, room_id});
   }
 
@@ -104,28 +109,39 @@ class _CreateRoomState extends State<CreateRoom> {
   void initState() {
     super.initState();
 
-    adminName.text = "";
-    roomName.text = "";
-    roomId.text = "";
+      socketManager = context.read<SocketManager>();
 
-    context.read<SocketManager>().socketListen("room-exists", (p0) {
-      ScaffoldMessengerState scaffold = ScaffoldMessenger.of(context);
-      scaffold.showSnackBar(const SnackBar(
-        content: Text('Room exists with this ID'),
-      ));
-    });
+      adminName.text = "";
+      roomName.text = "";
+      roomId.text = "";
 
-    context.read<SocketManager>().socketListen("room-n-exists", (p0) {
-      context.read<RoomState>().setRoomId(roomId.text);
-      context.read<RoomState>().setUserId(userId);
+      socketManager.socketListen("room-exists", (p0) {
+        ScaffoldMessengerState scaffold = ScaffoldMessenger.of(context);
+        scaffold.showSnackBar(const SnackBar(
+          content: Text('Room exists with this ID'),
+        ));
+      });
 
-      adminName.text = '';
-      roomName.text = '';
-      roomId.text = '';
+      socketManager.socketListen("room-n-exists", (p0) {
+        context.read<RoomState>().setRoomId(roomId.text);
+        context.read<RoomState>().setUserId(userId);
 
-      Navigator.push(
-          context, MaterialPageRoute(builder: (context) => const Room()));
-    });
+        adminName.text = '';
+        roomName.text = '';
+        roomId.text = '';
+
+        Navigator.push(
+            context, MaterialPageRoute(builder: (context) => const Room()));
+      });
+  }
+
+  @override
+  void dispose() {
+    socketManager.removeListener("room-n-exists");
+    socketManager.removeListener("room-exists");
+    socketManager.removeListener("create-room");
+
+    super.dispose();
   }
 
   @override
@@ -175,14 +191,10 @@ class _CreateRoomState extends State<CreateRoom> {
               onPressed: () => handleJoinRoom(context),
               label: Text(
                 'Create ${roomName.text}',
-                style: const TextStyle(color: Colors.white),
               ),
               icon: const Icon(
                 Icons.private_connectivity,
-                color: Colors.white,
               ),
-              style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.grey.shade900),
             ),
           ),
         ],
