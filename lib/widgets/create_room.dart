@@ -109,30 +109,30 @@ class _CreateRoomState extends State<CreateRoom> {
   void initState() {
     super.initState();
 
-    socketManager = context.read<SocketManager>();
+      socketManager = context.read<SocketManager>();
 
-    adminName.text = "";
-    roomName.text = "";
-    roomId.text = "";
+      adminName.text = "";
+      roomName.text = "";
+      roomId.text = "";
 
-    socketManager.socketListen("room-exists", (p0) {
-      ScaffoldMessengerState scaffold = ScaffoldMessenger.of(context);
-      scaffold.showSnackBar(const SnackBar(
-        content: Text('Room exists with this ID'),
-      ));
-    });
+      socketManager.socketListen("room-exists", (p0) {
+        ScaffoldMessengerState scaffold = ScaffoldMessenger.of(context);
+        scaffold.showSnackBar(const SnackBar(
+          content: Text('Room exists with this ID'),
+        ));
+      });
 
-    socketManager.socketListen("room-n-exists", (p0) {
-      context.read<RoomState>().setRoomId(roomId.text);
-      context.read<RoomState>().setUserId(userId);
+      socketManager.socketListen("room-n-exists", (p0) {
+        context.read<RoomState>().setRoomId(roomId.text);
+        context.read<RoomState>().setUserId(userId);
 
-      adminName.text = '';
-      roomName.text = '';
-      roomId.text = '';
+        adminName.text = '';
+        roomName.text = '';
+        roomId.text = '';
 
-      Navigator.push(
-          context, MaterialPageRoute(builder: (context) => const Room()));
-    });
+        Navigator.push(
+            context, MaterialPageRoute(builder: (context) => const Room()));
+      });
   }
 
   @override
@@ -195,8 +195,6 @@ class _CreateRoomState extends State<CreateRoom> {
               icon: const Icon(
                 Icons.private_connectivity,
               ),
-              style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.blue.shade50),
             ),
           ),
         ],

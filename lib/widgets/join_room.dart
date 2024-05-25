@@ -51,7 +51,7 @@ class _JoinRoomState extends State<JoinRoom> {
     socketManager.socketListen("room-not-found", (p0) {
       username.text = '';
       roomId.text = '';
-      
+
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Room not found')),
       );
@@ -105,8 +105,6 @@ class _JoinRoomState extends State<JoinRoom> {
               icon: const Icon(
                 Icons.private_connectivity,
               ),
-              style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.blue.shade50),
             ),
           ),
         ],
