@@ -1,7 +1,5 @@
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/widgets.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:loading_animation_widget/loading_animation_widget.dart';
 import 'package:partytube_app/model/room.dart';
@@ -64,6 +62,8 @@ class _RoomState extends State<Room> {
         mute: false,
       ),
     );
+
+    youtubePlayerController.addListener(seekVideo);
 
     searchController.text = '';
     chatController.text = '';
@@ -148,6 +148,7 @@ class _RoomState extends State<Room> {
 
     socketManager.socketListen("set-videoid", (socketData) {
       youtubePlayerController.load(socketData['videoId']);
+      youtubePlayerController.play();
 
       ScaffoldMessengerState scaffold = ScaffoldMessenger.of(context);
 
@@ -157,7 +158,6 @@ class _RoomState extends State<Room> {
     });
 
     socketManager.socketListen("receive-message", (dynamic socketData) {
-      print(socketData);
       setChatState(() {
         chats.add({
           "username": socketData['username']['username'],
@@ -165,6 +165,38 @@ class _RoomState extends State<Room> {
           "message": socketData['username']['message']
         });
       });
+    });
+
+    socketManager.socketListen("set-video-duration", (dynamic socketData) {
+      List<String> parts = socketData['duration'].split(':');
+      if (parts.length != 3) {
+        throw const FormatException(
+            "Invalid duration format. Expected HH:MM:SS.mmm.");
+      }
+
+      int hours = int.parse(parts[0]);
+      int minutes = int.parse(parts[1]);
+
+      List<String> secondsParts = parts[2].split('.');
+      if (secondsParts.length != 2) {
+        throw const FormatException(
+            "Invalid duration format. Expected HH:MM:SS.mmm.");
+      }
+      int seconds = int.parse(secondsParts[0]);
+      int milliseconds = int.parse(secondsParts[1]);
+      Duration position = Duration(
+          hours: hours,
+          minutes: minutes,
+          seconds: seconds,
+          milliseconds: milliseconds);
+
+      youtubePlayerController.seekTo(position);
+
+      ScaffoldMessengerState scaffold = ScaffoldMessenger.of(context);
+
+      scaffold.showSnackBar(SnackBar(
+        content: Text('${socketData['username']} dragged video'),
+      ));
     });
   }
 
@@ -188,6 +220,10 @@ class _RoomState extends State<Room> {
     socketManager.removeListener("set-videoid");
     socketManager.removeListener("send-message");
     socketManager.removeListener("receive-message");
+    socketManager.removeListener("set-video-duration");
+    socketManager.removeListener("seek-video");
+
+    youtubePlayerController.dispose();
 
     super.dispose();
   }
@@ -237,93 +273,119 @@ class _RoomState extends State<Room> {
             setSearchDialogState = setState;
 
             return AlertDialog(
-              title: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Expanded(
-                    child: TextField(
-                      controller: searchController,
-                      onSubmitted: (searchQuery) => searchOnYouTube(false),
-                      decoration: InputDecoration(
-                        hintText: 'Search on YouTube',
-                        isDense: true,
-                        contentPadding: const EdgeInsets.symmetric(
-                          vertical: 5,
-                          horizontal: 5,
-                        ),
-                        prefixIcon: IconButton(
-                          onPressed: () {},
-                          icon: const Icon(Icons.filter_list_outlined),
-                        ),
-                        border: const OutlineInputBorder(
-                          gapPadding: 0,
-                          borderRadius: BorderRadius.all(
-                            Radius.circular(50),
-                          ),
-                        ),
-                      ),
+              title: TextField(
+                controller: searchController,
+                onSubmitted: (searchQuery) => searchOnYouTube(false),
+                decoration: InputDecoration(
+                  hintText: 'Search on YouTube',
+                  isDense: true,
+                  contentPadding: const EdgeInsets.symmetric(
+                    vertical: 5,
+                    horizontal: 5,
+                  ),
+                  suffixIcon: PopupMenuButton<String>(
+                      icon: const Icon(Icons.filter_list_outlined),
+                      itemBuilder: (BuildContext context) =>
+                          <PopupMenuEntry<String>>[
+                            PopupMenuItem<String>(
+                              value: 'max-result',
+                              child: TextField(
+                                onChanged: (maxResult) {
+                                  int maxValue = int.parse(maxResult);
+                                  if (maxValue == 0) {
+                                    youTubeApi.searchFilter['maxResults'] = 10;
+                                    return;
+                                  }
+                                  youTubeApi.searchFilter['maxResults'] =
+                                      maxValue;
+                                },
+                                decoration: const InputDecoration(
+                                    hintText: 'Max Result'),
+                              ),
+                            ),
+                          ]),
+                  border: const OutlineInputBorder(
+                    gapPadding: 0,
+                    borderRadius: BorderRadius.all(
+                      Radius.circular(50),
                     ),
                   ),
-                  IconButton(
-                    onPressed: () {
-                      Navigator.pop(searchDialog);
-                    },
-                    icon: const Icon(Icons.close),
-                  ),
-                ],
+                ),
               ),
               content: SizedBox(
                 width: MediaQuery.of(context).size.width,
                 height: MediaQuery.of(context).size.height,
-                child: isLoading
-                    ? Center(
-                        child: LoadingAnimationWidget.waveDots(
-                          color: Theme.of(context).primaryColor,
-                          size: 75,
-                        ),
-                      )
-                    : ListView.builder(
-                        itemCount: searchData.length,
-                        itemBuilder: (BuildContext context, int index) {
-                          double thumbnailWidth =
-                              searchData[index]['thumbnailHeight'];
-                          double thumbnailHeight =
-                              searchData[index]['thumbnailHeight'];
-                          String videoTitle = searchData[index]['title'];
-                          String imageSrc = searchData[index]['thumbnailUrl'];
-                          String videoId = searchData[index]['videoId'];
+                child: ListView.builder(
+                  itemCount: searchData.length + 1,
+                  itemBuilder: (BuildContext context, int index) {
+                    if (searchData.isEmpty) {
+                      return const Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          Center(
+                            child: Text('Search something'),
+                          ),
+                        ],
+                      );
+                    }
 
-                          return SizedBox(
-                            height: 60,
-                            child: ListTile(
-                              leading: CachedNetworkImage(
-                                imageUrl: imageSrc,
-                                width: thumbnailWidth,
-                                height: thumbnailHeight,
-                                fit: BoxFit.cover,
-                                placeholder: (context, url) => const Center(
-                                  child: Text('Loading...'),
+                    if (index == searchData.length) {
+                      return Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 16.0),
+                        child: Center(
+                          child: isLoading
+                              ? LoadingAnimationWidget.waveDots(
+                                  color: Theme.of(context).secondaryHeaderColor,
+                                  size: 35,
+                                )
+                              : ElevatedButton(
+                                  onPressed: () => searchOnYouTube(true),
+                                  child: const Text('Load More'),
                                 ),
-                                errorWidget: (context, url, error) =>
-                                    const Icon(Icons.error),
-                              ),
-                              title: Text(
-                                videoTitle,
-                                style: const TextStyle(fontSize: 13),
-                                overflow: TextOverflow.clip,
-                              ),
-                              onTap: () => handleVideoClick(videoId),
-                            ),
-                          );
-                        },
+                        ),
+                      );
+                    }
+
+                    double thumbnailWidth =
+                        searchData[index]['thumbnailHeight'];
+                    double thumbnailHeight =
+                        searchData[index]['thumbnailHeight'];
+                    String videoTitle = searchData[index]['title'];
+                    String imageSrc = searchData[index]['thumbnailUrl'];
+                    String videoId = searchData[index]['videoId'];
+
+                    return SizedBox(
+                      height: 60,
+                      child: ListTile(
+                        leading: CachedNetworkImage(
+                          imageUrl: imageSrc,
+                          width: thumbnailWidth,
+                          height: thumbnailHeight,
+                          fit: BoxFit.cover,
+                          placeholder: (context, url) => const Center(
+                            child: Text('Loading...'),
+                          ),
+                          errorWidget: (context, url, error) =>
+                              const Icon(Icons.error),
+                        ),
+                        title: Text(
+                          videoTitle,
+                          style: const TextStyle(fontSize: 13),
+                          overflow: TextOverflow.clip,
+                        ),
+                        onTap: () => handleVideoClick(videoId),
                       ),
+                    );
+                  },
+                ),
               ),
               actions: [
                 ElevatedButton(
                   onPressed: () {
-                    searchOnYouTube(true);
+                    Navigator.pop(searchDialog);
                   },
-                  child: const Text('Load more'),
+                  child: const Text('Close'),
                 ),
               ],
             );
@@ -346,6 +408,16 @@ class _RoomState extends State<Room> {
     });
 
     chatController.text = '';
+  }
+
+  void seekVideo() {
+    if (youtubePlayerController.value.isDragging) {
+      socketManager.socketEmit("seek-video", {
+        "username": user.name,
+        "userId": user.id,
+        "duration": youtubePlayerController.value.position.toString()
+      });
+    }
   }
 
   @override
