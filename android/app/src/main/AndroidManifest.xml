@@ -1,6 +1,6 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <application
-        android:label="partytube_app"
+        android:label="Party Tube"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity
