@@ -17,7 +17,7 @@ class Room extends StatefulWidget {
   State<Room> createState() => _RoomState();
 }
 
-class _RoomState extends State<Room> {
+class _RoomState extends State<Room> with WidgetsBindingObserver {
   late String roomId;
   late String userId;
 
@@ -225,7 +225,19 @@ class _RoomState extends State<Room> {
 
     youtubePlayerController.dispose();
 
+    chatController.dispose();
+    searchController.dispose();
+
     super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.detached) {
+      handleRoomLeave();
+    }
+
+    super.didChangeAppLifecycleState(state);
   }
 
   void handleRoomLeave() {
