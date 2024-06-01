@@ -314,7 +314,7 @@ class _RoomState extends State<Room> {
               ),
               content: SizedBox(
                 width: MediaQuery.of(context).size.width,
-                height: MediaQuery.of(context).size.height,
+                height: MediaQuery.of(context).size.height * 0.55,
                 child: ListView.builder(
                   itemCount: searchData.length + 1,
                   itemBuilder: (BuildContext context, int index) {
