@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:loading_animation_widget/loading_animation_widget.dart';
+import 'package:partytube_app/pages/about_me.dart';
 import 'package:partytube_app/state_management/socket_manager.dart';
 import 'package:partytube_app/widgets/create_room.dart';
 import 'package:partytube_app/widgets/join_room.dart';
@@ -49,7 +50,17 @@ class _HomepageState extends State<Homepage> {
   Widget build(BuildContext context) {
     return SafeArea(
       child: Scaffold(
-        appBar: AppBar(),
+        appBar: AppBar(
+          title: const Text('Party Tube'),
+          actions: [
+            IconButton(
+                onPressed: () {
+                  Navigator.push(context,
+                      MaterialPageRoute(builder: (context) => const AboutMe()));
+                },
+                icon: const Icon(Icons.info))
+          ],
+        ),
         body: Builder(builder: (context) {
           if (loader) {
             return Column(
