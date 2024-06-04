@@ -66,6 +66,14 @@ class _CreateRoomState extends State<CreateRoom> {
                     height: 10,
                   ),
                   ElevatedButton.icon(
+                    style: ElevatedButton.styleFrom(
+                      shape: RoundedRectangleBorder(
+                        side: BorderSide(
+                            color: Theme.of(context).colorScheme.secondary,
+                            width: 1),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
                     onPressed: () {
                       Share.share(roomId.text,
                           subject:
@@ -78,6 +86,14 @@ class _CreateRoomState extends State<CreateRoom> {
                     height: 10,
                   ),
                   ElevatedButton.icon(
+                    style: ElevatedButton.styleFrom(
+                      shape: RoundedRectangleBorder(
+                        side: BorderSide(
+                            color: Theme.of(context).colorScheme.secondary,
+                            width: 1),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
                     onPressed: handleCreateAndJoinRoom,
                     label: const Text('Create Room & Join'),
                     icon: const Icon(Icons.private_connectivity),
@@ -109,30 +125,30 @@ class _CreateRoomState extends State<CreateRoom> {
   void initState() {
     super.initState();
 
-      socketManager = context.read<SocketManager>();
+    socketManager = context.read<SocketManager>();
 
-      adminName.text = "";
-      roomName.text = "";
-      roomId.text = "";
+    adminName.text = "";
+    roomName.text = "";
+    roomId.text = "";
 
-      socketManager.socketListen("room-exists", (p0) {
-        ScaffoldMessengerState scaffold = ScaffoldMessenger.of(context);
-        scaffold.showSnackBar(const SnackBar(
-          content: Text('Room exists with this ID'),
-        ));
-      });
+    socketManager.socketListen("room-exists", (p0) {
+      ScaffoldMessengerState scaffold = ScaffoldMessenger.of(context);
+      scaffold.showSnackBar(const SnackBar(
+        content: Text('Room exists with this ID'),
+      ));
+    });
 
-      socketManager.socketListen("room-n-exists", (p0) {
-        context.read<RoomState>().setRoomId(roomId.text);
-        context.read<RoomState>().setUserId(userId);
+    socketManager.socketListen("room-n-exists", (p0) {
+      context.read<RoomState>().setRoomId(roomId.text);
+      context.read<RoomState>().setUserId(userId);
 
-        adminName.text = '';
-        roomName.text = '';
-        roomId.text = '';
+      adminName.text = '';
+      roomName.text = '';
+      roomId.text = '';
 
-        Navigator.push(
-            context, MaterialPageRoute(builder: (context) => const Room()));
-      });
+      Navigator.push(
+          context, MaterialPageRoute(builder: (context) => const Room()));
+    });
   }
 
   @override
@@ -188,9 +204,18 @@ class _CreateRoomState extends State<CreateRoom> {
           SizedBox(
             width: MediaQuery.of(context).size.width - 30,
             child: ElevatedButton.icon(
+              style: ElevatedButton.styleFrom(
+                shape: RoundedRectangleBorder(
+                  side: BorderSide(
+                      color: Theme.of(context).colorScheme.secondary, width: 1),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
               onPressed: () => handleJoinRoom(context),
               label: Text(
                 'Create ${roomName.text}',
+                style:
+                    TextStyle(color: Theme.of(context).colorScheme.secondary),
               ),
               icon: const Icon(
                 Icons.private_connectivity,

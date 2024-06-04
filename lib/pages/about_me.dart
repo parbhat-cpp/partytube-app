@@ -40,7 +40,7 @@ class AboutMe extends StatelessWidget {
                 child: Text(
                   'Developed by Parbhat Sharma',
                   style: TextStyle(
-                      color: Theme.of(context).secondaryHeaderColor,
+                      color: Theme.of(context).colorScheme.secondary,
                       fontSize: 15),
                 ),
               ),

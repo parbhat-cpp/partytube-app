@@ -295,6 +295,7 @@ class _RoomState extends State<Room> with WidgetsBindingObserver {
                     vertical: 5,
                     horizontal: 5,
                   ),
+                  prefixIcon: const Icon(Icons.search),
                   suffixIcon: PopupMenuButton<String>(
                       icon: const Icon(Icons.filter_list_outlined),
                       itemBuilder: (BuildContext context) =>
@@ -352,8 +353,24 @@ class _RoomState extends State<Room> with WidgetsBindingObserver {
                                   size: 35,
                                 )
                               : ElevatedButton(
+                                  style: ElevatedButton.styleFrom(
+                                    shape: RoundedRectangleBorder(
+                                      side: BorderSide(
+                                          color: Theme.of(context)
+                                              .colorScheme
+                                              .secondary,
+                                          width: 1),
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                  ),
                                   onPressed: () => searchOnYouTube(true),
-                                  child: const Text('Load More'),
+                                  child: Text(
+                                    'Load More',
+                                    style: TextStyle(
+                                        color: Theme.of(context)
+                                            .colorScheme
+                                            .secondary),
+                                  ),
                                 ),
                         ),
                       );
@@ -394,10 +411,22 @@ class _RoomState extends State<Room> with WidgetsBindingObserver {
               ),
               actions: [
                 ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    shape: RoundedRectangleBorder(
+                      side: BorderSide(
+                          color: Theme.of(context).colorScheme.secondary,
+                          width: 1),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
                   onPressed: () {
                     Navigator.pop(searchDialog);
                   },
-                  child: const Text('Close'),
+                  child: Text(
+                    'Close',
+                    style: TextStyle(
+                        color: Theme.of(context).colorScheme.secondary),
+                  ),
                 ),
               ],
             );
@@ -432,142 +461,160 @@ class _RoomState extends State<Room> with WidgetsBindingObserver {
     }
   }
 
+  youtubePlayer() {
+    return SafeArea(
+      child: YoutubePlayerBuilder(
+        player: YoutubePlayer(
+          controller: youtubePlayerController,
+        ),
+        builder: (context, player) {
+          return player;
+        },
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    return SafeArea(
-      child: Builder(builder: (context) {
-        if (!userFound && !roomFound) {
-          return Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Center(
-                child: LoadingAnimationWidget.prograssiveDots(
-                  color: Theme.of(context).primaryColor,
-                  size: 75,
-                ),
-              ),
-            ],
-          );
-        } else {
-          return Scaffold(
-            key: _scaffoldKey,
-            endDrawer: Drawer(
-              child: ListView.builder(
-                itemCount: room.users.length,
-                itemBuilder: (context, index) {
-                  return Card(
-                    child: ListTile(
-                      leading: Visibility(
-                        visible: isUserAdmin(userId) &&
-                            !isUserAdmin(room.users[index].userId),
-                        child: IconButton(
-                          tooltip: 'Remove user',
-                          onPressed: () => removeUser(room.users[index].userId),
-                          icon: const Icon(Icons.close),
-                        ),
-                      ),
-                      iconColor: Colors.red,
-                      title: Text(
-                        '${room.users[index].username} ${isUserAdmin(room.users[index].userId) ? '(Admin)' : ''}',
+    return OrientationBuilder(builder: (context, orientaion) {
+      switch (orientaion) {
+        case Orientation.portrait:
+          return SafeArea(
+            child: Builder(builder: (context) {
+              if (!userFound && !roomFound) {
+                return Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Center(
+                      child: LoadingAnimationWidget.prograssiveDots(
+                        color: Theme.of(context).primaryColor,
+                        size: 75,
                       ),
                     ),
-                  );
-                },
-              ),
-            ),
-            appBar: AppBar(
-              title: Text('${room.roomName} (${room.roomId})'),
-              automaticallyImplyLeading: false,
-              leading: Builder(builder: (BuildContext context) {
-                return IconButton(
-                  onPressed: handleRoomLeave,
-                  icon: const Icon(Icons.arrow_back),
+                  ],
                 );
-              }),
-              actions: [
-                IconButton(
-                  onPressed: () => _showSearchDialog(context),
-                  icon: const Icon(Icons.search),
-                ),
-                IconButton(
-                  onPressed: () {
-                    _scaffoldKey.currentState!.openEndDrawer();
-                  },
-                  icon: const Icon(Icons.menu),
-                ),
-              ],
-            ),
-            body: Column(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                YoutubePlayerBuilder(
-                  player: YoutubePlayer(
-                    controller: youtubePlayerController,
-                  ),
-                  builder: (context, player) {
-                    return Column(
-                      children: [player],
-                    );
-                  },
-                ),
-                Expanded(
-                  child: StatefulBuilder(builder: (context, setState) {
-                    setChatState = setState;
-
-                    return ListView.builder(
-                      itemCount: chats.length,
+              } else {
+                return Scaffold(
+                  key: _scaffoldKey,
+                  endDrawer: Drawer(
+                    child: ListView.builder(
+                      itemCount: room.users.length,
                       itemBuilder: (context, index) {
-                        String message = chats[index]['message'] as String;
-                        String userSent = chats[index]['userId'] as String;
-                        String username = (user.id == userSent)
-                            ? 'Me'
-                            : chats[index]['username'] as String;
-
-                        return Row(
-                          children: [
-                            if (user.id == userSent)
-                              const Spacer(
-                                flex: 1,
-                              ),
-                            ConstrainedBox(
-                              constraints: BoxConstraints(
-                                maxWidth:
-                                    MediaQuery.of(context).size.width * 0.75,
-                              ),
-                              child: Chat(
-                                text: message,
-                                username: username,
-                                isMe: username == 'Me',
+                        return Card(
+                          child: ListTile(
+                            leading: Visibility(
+                              visible: isUserAdmin(userId) &&
+                                  !isUserAdmin(room.users[index].userId),
+                              child: IconButton(
+                                tooltip: 'Remove user',
+                                onPressed: () =>
+                                    removeUser(room.users[index].userId),
+                                icon: const Icon(Icons.close),
                               ),
                             ),
-                          ],
+                            iconColor: Colors.red,
+                            title: Text(
+                              '${room.users[index].username} ${isUserAdmin(room.users[index].userId) ? '(Admin)' : ''}',
+                            ),
+                          ),
                         );
                       },
-                    );
-                  }),
-                ),
-                Container(
-                  padding: const EdgeInsets.all(2),
-                  child: TextField(
-                    controller: chatController,
-                    decoration: InputDecoration(
-                      hintText: 'Type a message',
-                      isDense: true,
-                      border: const OutlineInputBorder(
-                          borderSide: BorderSide(width: 1)),
-                      suffixIcon: IconButton(
-                        onPressed: () => sendMessage(),
-                        icon: const Icon(Icons.send),
-                      ),
                     ),
-                    onSubmitted: (msg) => sendMessage(),
                   ),
-                ),
-              ],
-            ),
+                  appBar: AppBar(
+                    title: Text('${room.roomName} (${room.roomId})'),
+                    automaticallyImplyLeading: false,
+                    leading: Builder(builder: (BuildContext context) {
+                      return IconButton(
+                        onPressed: handleRoomLeave,
+                        icon: const Icon(Icons.arrow_back),
+                      );
+                    }),
+                    actions: [
+                      IconButton(
+                        onPressed: () => _showSearchDialog(context),
+                        icon: const Icon(Icons.search),
+                      ),
+                      IconButton(
+                        onPressed: () {
+                          _scaffoldKey.currentState!.openEndDrawer();
+                        },
+                        icon: const Icon(Icons.menu),
+                      ),
+                    ],
+                  ),
+                  body: Column(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      youtubePlayer(),
+                      Expanded(
+                        child: StatefulBuilder(builder: (context, setState) {
+                          setChatState = setState;
+
+                          return ListView.builder(
+                            itemCount: chats.length,
+                            itemBuilder: (context, index) {
+                              String message =
+                                  chats[index]['message'] as String;
+                              String userSent =
+                                  chats[index]['userId'] as String;
+                              String username = (user.id == userSent)
+                                  ? 'Me'
+                                  : chats[index]['username'] as String;
+
+                              return Row(
+                                children: [
+                                  if (user.id == userSent)
+                                    const Spacer(
+                                      flex: 1,
+                                    ),
+                                  ConstrainedBox(
+                                    constraints: BoxConstraints(
+                                      maxWidth:
+                                          MediaQuery.of(context).size.width *
+                                              0.75,
+                                    ),
+                                    child: Chat(
+                                      text: message,
+                                      username: username,
+                                      isMe: username == 'Me',
+                                    ),
+                                  ),
+                                ],
+                              );
+                            },
+                          );
+                        }),
+                      ),
+                      Container(
+                        padding: const EdgeInsets.all(2),
+                        child: TextField(
+                          controller: chatController,
+                          decoration: InputDecoration(
+                            hintText: 'Type a message',
+                            isDense: true,
+                            border: const OutlineInputBorder(
+                                borderSide: BorderSide(width: 1)),
+                            suffixIcon: IconButton(
+                              onPressed: () => sendMessage(),
+                              icon: const Icon(Icons.send),
+                            ),
+                          ),
+                          onSubmitted: (msg) => sendMessage(),
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              }
+            }),
           );
-        }
-      }),
-    );
+        case Orientation.landscape:
+          return FittedBox(
+            fit: BoxFit.contain,
+            child: youtubePlayer(),
+          );
+      }
+    });
   }
 }

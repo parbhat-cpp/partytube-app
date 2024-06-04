@@ -98,9 +98,18 @@ class _JoinRoomState extends State<JoinRoom> {
           SizedBox(
             width: MediaQuery.of(context).size.width - 30,
             child: ElevatedButton.icon(
+              style: ElevatedButton.styleFrom(
+                shape: RoundedRectangleBorder(
+                  side: BorderSide(
+                      color: Theme.of(context).colorScheme.secondary, width: 1),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
               onPressed: handleJoinRoom,
-              label: const Text(
+              label: Text(
                 'Join Room',
+                style:
+                    TextStyle(color: Theme.of(context).colorScheme.secondary),
               ),
               icon: const Icon(
                 Icons.private_connectivity,
