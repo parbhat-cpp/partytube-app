@@ -10,11 +10,10 @@ An Android app which connects its users across the world and helps them to watch
 3. It will navigate you to your created room.
 4. In room you can chat with others and choose any YouTube video to watch.
 ## Screenshots
-
-![WhatsApp Image 2024-06-06 at 07 11 37_6b11b4e8](https://github.com/parbhat-cpp/partytube-app/assets/83265789/2c8ef1b8-bc83-41d8-bd8a-ccdb604a987e)
-![WhatsApp Image 2024-06-06 at 07 11 52_eed8d388](https://github.com/parbhat-cpp/partytube-app/assets/83265789/9c6b9ef9-5304-4e19-aa02-c2c80b92972e)
-![WhatsApp Image 2024-06-06 at 07 12 07_a6f0ed7a](https://github.com/parbhat-cpp/partytube-app/assets/83265789/98e6fbfb-db63-4af5-b382-aa809761c9f1)
-![WhatsApp Image 2024-06-06 at 07 12 21_e44176ce](https://github.com/parbhat-cpp/partytube-app/assets/83265789/4dd0619d-5e6e-4285-ad5a-95ea4eacff5c)
+![WhatsApp Image 2024-06-06 at 07 11 37_6b11b4e8 (1)](https://github.com/parbhat-cpp/partytube-app/assets/83265789/afb4c573-2044-461d-b4b9-e0cb16d5d64e)
+![WhatsApp Image 2024-06-06 at 07 11 52_eed8d388 (1)](https://github.com/parbhat-cpp/partytube-app/assets/83265789/ab4c12eb-5ce6-4473-834d-fa07602c1546)
+![WhatsApp Image 2024-06-06 at 07 12 07_a6f0ed7a (1)](https://github.com/parbhat-cpp/partytube-app/assets/83265789/abd99bc9-bc70-4ea3-aa64-b98c8763cb7e)
+![WhatsApp Image 2024-06-06 at 07 12 21_e44176ce (1)](https://github.com/parbhat-cpp/partytube-app/assets/83265789/e17e73c5-5218-44c6-8f5e-e5e34095a530)
 
 ## Tech Stack
 
@@ -34,7 +33,7 @@ To run this project, you will need to add the following environment variables to
 
 ## Installation
 
-Install apk here - 
+Install apk here - https://drive.google.com/file/d/1MNNTwUaSg7W-PV2kNOWJSQRaaUGH6A3i/view?usp=drive_link
     
 ## Authors
 
