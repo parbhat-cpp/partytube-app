@@ -4,6 +4,20 @@ import 'package:url_launcher/url_launcher.dart';
 class AboutMe extends StatelessWidget {
   const AboutMe({super.key});
 
+  void _launchUrl(String url) async {
+    try {
+      if (await canLaunchUrl(Uri.parse(url))) {
+        await launchUrl(Uri.parse(url),
+            mode: LaunchMode.platformDefault,
+            webViewConfiguration: WebViewConfiguration(enableJavaScript: true));
+      } else {
+        throw 'Could not launch $url';
+      }
+    } catch (error) {
+      throw new Error();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return SafeArea(
@@ -16,26 +30,21 @@ class AboutMe extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              InkWell(
-                child: const Text('My Portfolio'),
-                onTap: () => launchUrl(
-                  Uri(path: 'https://parbhatsharma.in/'),
-                ),
+              ElevatedButton(
+                onPressed: () => _launchUrl('https://parbhatsharma.in/'),
+                child: Text('Parbhat Sharma\'s Portfolio'),
               ),
-              InkWell(
-                child: const Text('Twitter'),
-                onTap: () => launchUrl(
-                  Uri(path: 'https://twitter.com/ParbhatSharma29'),
-                ),
+              ElevatedButton(
+                onPressed: () =>
+                    _launchUrl('https://twitter.com/ParbhatSharma29'),
+                child: Text('Parbhat Sharma\'s Twitter'),
               ),
-              InkWell(
-                child: const Text('LinkedIn'),
-                onTap: () => launchUrl(
-                  Uri(
-                      path:
-                          'https://www.linkedin.com/in/parbhat-sharma-7750b4270/'),
-                ),
+              ElevatedButton(
+                onPressed: () => _launchUrl(
+                    'https://www.linkedin.com/in/parbhat-sharma-7750b4270/'),
+                child: Text('Parbhat Sharma\'s LinkedIn'),
               ),
+              Spacer(),
               Center(
                 child: Text(
                   'Developed by Parbhat Sharma',
