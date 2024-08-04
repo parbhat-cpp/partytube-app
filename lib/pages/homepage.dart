@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:loading_animation_widget/loading_animation_widget.dart';
+import 'package:partytube_app/pages/about_me.dart';
 import 'package:partytube_app/state_management/socket_manager.dart';
 import 'package:partytube_app/widgets/create_room.dart';
 import 'package:partytube_app/widgets/join_room.dart';
@@ -12,14 +13,24 @@ class Homepage extends StatefulWidget {
 }
 
 class _HomepageState extends State<Homepage> {
-  late bool loader;
+  late bool loader = false;
   late SocketManager socketManager;
+
+  ExpansionTileController expandCreateRoom = ExpansionTileController();
+  ExpansionTileController expandJoinRoom = ExpansionTileController();
+
+  late ThemeData themeData;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      themeData = Theme.of(context);
 
-    initSocket();
+      initSocket();
+
+      loader = false;
+    });
   }
 
   initSocket() {
@@ -40,7 +51,15 @@ class _HomepageState extends State<Homepage> {
     return SafeArea(
       child: Scaffold(
         appBar: AppBar(
-          backgroundColor: Colors.black,
+          title: const Text('Party Tube'),
+          actions: [
+            IconButton(
+                onPressed: () {
+                  Navigator.push(context,
+                      MaterialPageRoute(builder: (context) => const AboutMe()));
+                },
+                icon: const Icon(Icons.info))
+          ],
         ),
         body: Builder(builder: (context) {
           if (loader) {
@@ -49,7 +68,7 @@ class _HomepageState extends State<Homepage> {
               children: [
                 Center(
                   child: LoadingAnimationWidget.prograssiveDots(
-                    color: Colors.black26,
+                    color: themeData.primaryColor,
                     size: 75,
                   ),
                 ),
@@ -57,16 +76,18 @@ class _HomepageState extends State<Homepage> {
               ],
             );
           } else {
-            return const Column(
+            return Column(
               children: [
                 ExpansionTile(
+                  controller: expandCreateRoom,
                   initiallyExpanded: true,
-                  title: Text("Create Room"),
-                  children: [CreateRoom()],
+                  title: const Text("Create Room"),
+                  children: const [CreateRoom()],
                 ),
                 ExpansionTile(
-                  title: Text("Join Room"),
-                  children: [JoinRoom()],
+                  controller: expandJoinRoom,
+                  title: const Text("Join Room"),
+                  children: const [JoinRoom()],
                 ),
               ],
             );

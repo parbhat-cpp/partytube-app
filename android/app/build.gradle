@@ -53,6 +53,13 @@ android {
     }
 }
 
+dependencies {
+
+    // Fix Duplicate class
+    implementation(platform("org.jetbrains.kotlin:kotlin-bom:1.6.0"))
+
+}
+
 flutter {
     source = "../.."
 }
